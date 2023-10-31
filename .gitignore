@@ -1,6 +1,11 @@
 ### Composer ###
 composer.phar
-/vendor/
+vendor/
 
 ### Secrets ###
 db-access.php
+
+### Local Testing ###
+curl/
+curl-commands.sh
+php-composer-require.txt

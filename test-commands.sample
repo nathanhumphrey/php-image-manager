@@ -1,0 +1,26 @@
+# TEST api/register
+.\curl.exe -X POST http://localhost/api/register -H 'Content-Type: application/json' -d '{\"email\": \"EMAIL_ADDRESS\", \"password\": \"PASSWORD\", \"username\": \"USERNAME\"}'
+
+# TEST api/login
+.\curl.exe -X POST http://localhost/api/login -H 'Content-Type: application/json' -d '{\"email\": \"EMAIL_ADDRESS\", \"password\": \"PASSWORD\"}'
+
+
+# Sample JWT
+"data": {
+    "header": "Authorization",
+    "type": "Bearer",
+    "credentials": "JWT_TOKEN"
+}
+
+# TEST token
+.\curl -H 'Accept: application/json' -H "Authorization: Bearer JWT_TOKEN" http://localhost/api/test
+
+
+# JS Fetch Test token
+fetch ('http://localhost/api/test', {
+	method: 'get',
+	headers: {
+      'Authorization': 'Bearer JWT_TOKEN',
+    },
+})
+.then(res => res.json()).then(json => console.log(json));

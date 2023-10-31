@@ -1,7 +1,10 @@
 {
     "require": {
-        "firebase/php-jwt": "^6.9",
         "slim/psr7": "^1.6",
-        "slim/slim": "^4.12"
+        "slim/slim": "^4.12",
+        "tuupola/slim-jwt-auth": "^3.8",
+        "tuupola/cors-middleware": "^1.4",
+        "firebase/php-jwt": "^5.5",
+        "ramsey/uuid": "^4.7"
     }
 }
