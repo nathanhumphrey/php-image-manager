@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: mariadb
--- Generation Time: Oct 16, 2023 at 03:06 AM
+-- Generation Time: Oct 31, 2023 at 09:10 PM
 -- Server version: 10.9.8-MariaDB-1:10.9.8+maria~ubu2204
 -- PHP Version: 8.2.8
 
@@ -29,7 +29,8 @@ SET time_zone = "+00:00";
 
 CREATE TABLE `albums` (
   `album_name` varchar(64) NOT NULL,
-  `description` text NOT NULL
+  `description` text NOT NULL,
+  `user_id` char(36) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -51,9 +52,11 @@ CREATE TABLE `album_images` (
 
 CREATE TABLE `images` (
   `filename` varchar(64) NOT NULL DEFAULT uuid(),
-  `description` text DEFAULT NULL,
-  `date_added` date NOT NULL DEFAULT current_timestamp(),
-  `orientation` char(1) NOT NULL DEFAULT 'L'
+  `image_caption` text DEFAULT NULL,
+  `image_upload_date` date NOT NULL DEFAULT current_timestamp(),
+  `image_type` varchar(16) NOT NULL,
+  `image_size` int(11) NOT NULL,
+  `user_id` char(36) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -63,10 +66,10 @@ CREATE TABLE `images` (
 --
 
 CREATE TABLE `users` (
-  `user_id` CHAR(36) NOT NULL,
-  `username` VARCHAR(255) NOT NULL,
-  `email` VARCHAR(255) NOT NULL,
-  `password` VARCHAR(255) NOT NULL
+  `user_id` char(36) NOT NULL,
+  `username` varchar(255) NOT NULL,
+  `email` varchar(255) NOT NULL,
+  `password` varchar(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -77,7 +80,8 @@ CREATE TABLE `users` (
 -- Indexes for table `albums`
 --
 ALTER TABLE `albums`
-  ADD PRIMARY KEY (`album_name`);
+  ADD PRIMARY KEY (`album_name`),
+  ADD KEY `user_id` (`user_id`);
 
 --
 -- Indexes for table `album_images`
@@ -90,7 +94,8 @@ ALTER TABLE `album_images`
 -- Indexes for table `images`
 --
 ALTER TABLE `images`
-  ADD PRIMARY KEY (`filename`);
+  ADD PRIMARY KEY (`filename`),
+  ADD KEY `user_id` (`user_id`);
 
 --
 -- Indexes for table `users`
@@ -103,11 +108,24 @@ ALTER TABLE `users`
 --
 
 --
+-- Constraints for table `albums`
+--
+ALTER TABLE `albums`
+  ADD CONSTRAINT `fk_albums_users_user_id` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE ON UPDATE NO ACTION;
+COMMIT;
+
+--
 -- Constraints for table `album_images`
 --
 ALTER TABLE `album_images`
-  ADD CONSTRAINT `fk_album_images_albums_album_name` FOREIGN KEY (`album_name`) REFERENCES `albums` (`album_name`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  ADD CONSTRAINT `fk_album_images_images_filename` FOREIGN KEY (`filename`) REFERENCES `images` (`filename`) ON DELETE NO ACTION ON UPDATE NO ACTION;
+  ADD CONSTRAINT `fk_album_images_albums_album_name` FOREIGN KEY (`album_name`) REFERENCES `albums` (`album_name`) ON DELETE CASCADE ON UPDATE NO ACTION,
+  ADD CONSTRAINT `fk_album_images_images_filename` FOREIGN KEY (`filename`) REFERENCES `images` (`filename`) ON DELETE CASCADE ON UPDATE NO ACTION;
+
+--
+-- Constraints for table `images`
+--
+ALTER TABLE `images`
+  ADD CONSTRAINT `fk_images_users_user_id` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE ON UPDATE NO ACTION;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
