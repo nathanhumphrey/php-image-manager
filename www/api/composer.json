@@ -5,6 +5,7 @@
         "tuupola/slim-jwt-auth": "^3.8",
         "tuupola/cors-middleware": "^1.4",
         "firebase/php-jwt": "^5.5",
-        "ramsey/uuid": "^4.7"
+        "ramsey/uuid": "^4.7",
+        "php-di/php-di": "^7.0"
     }
 }

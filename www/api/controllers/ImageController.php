@@ -1,17 +1,4 @@
 <?php
-// Create a php ImageController in the same style as the open UserController.php file.
-// The ImageController should have the following methods:
-//  - createImage($imagePath, $imageCaption, $imageType, $imageSize, $imageUploadDate, $userId)
-//  - getImageByFilename($filename)
-//  - getImagesForUser($userId)
-//  - updateImage($image)
-//  - deleteImage($filename)
-//  - deleteImagesFromAlbum($albumName)
-//  - deleteImagesForUser($userId)
-//  - uploadImage($image, $userId, $albumName = null)
-
-// Path: www/api/controllers/ImageController.php
-
 require_once __DIR__ . '/../models/Image.php';
 
 class ImageController {
@@ -20,13 +7,16 @@ class ImageController {
     private $uploadPath = __DIR__ . '/../../images/';
     private static $instance = null;
 
-    private function __construct($database) {
+    private function __construct($database, $uploadPath) {
         $this->db = $database;
+        if (!is_null($uploadPath)) {
+            $this->uploadPath = $uploadPath;
+        }
     }
 
-    public static function getInstance($database) {
+    public static function getInstance($database, $uploadPath = null) {
         if (is_null(self::$instance)) {
-            self::$instance = new self($database);
+            self::$instance = new self($database, $uploadPath);
         }
 
         return self::$instance;

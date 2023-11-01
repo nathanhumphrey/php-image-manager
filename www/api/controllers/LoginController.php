@@ -33,6 +33,7 @@ class LoginController {
 		$user = $this->userController->getUserByCredentials($email, $password);
 
 		if ($user != false) {
+			// https://tools.ietf.org/html/rfc6750
 			$data = array(
 				'iat' => time(),
 				'nbf' => time(),
