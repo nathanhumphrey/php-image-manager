@@ -9,3 +9,6 @@ db-access.php
 curl/
 curl-commands.sh
 php-composer-require.txt
+
+### Other ###
+images/

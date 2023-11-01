@@ -1,4 +1,7 @@
 <?php
+
+use Psr\Http\Message\UploadedFileInterface;
+
 require_once __DIR__ . '/../models/Image.php';
 
 class ImageController {
@@ -26,16 +29,14 @@ class ImageController {
      * Returns an Image object or false if creation fails.
      * This method can only be called from within the class on successful upload.
      */
-    private function createImage($imageCaption, $imageType, $imageSize, $imageUploadDate, $userId = null) {
+    private function createImage($filename, $imageCaption, $imageType, $imageSize, $imageUploadDate, $userId = null) {
         // Sanitize user input to prevent SQL injection
+        $filename = htmlspecialchars($filename);
         $imageCaption = htmlspecialchars($imageCaption);
         $imageType = htmlspecialchars($imageType);
         $imageSize = htmlspecialchars($imageSize);
         $imageUploadDate = htmlspecialchars($imageUploadDate);
         $userId = htmlspecialchars($userId);
-
-        // Create a new UUID id for the image
-        $filename = uuid();
 
         // Insert new image into the database
         $insertImageQuery = "INSERT INTO images (filename, image_caption, image_type, image_size, image_upload_date, user_id) VALUES (:filename, :imageCaption, :imageType, :imageSize, :imageUploadDate, :userId)";
@@ -308,48 +309,58 @@ class ImageController {
     }
 
     // Uploads an image file to the server and returns the path with new filename
-    public function uploadImage($image, $userId, $albumName = null) {
+    public function uploadImage(UploadedFileInterface $image, $userId, $caption = '') {
         // Sanitize user input to prevent SQL injection
         $userId = htmlspecialchars($userId);
-        $albumName = htmlspecialchars($albumName);
+        $caption = htmlspecialchars($caption);
 
         // Check if the image is valid
-        if ($image['error'] !== UPLOAD_ERR_OK) {
+        if ($image->getError() !== UPLOAD_ERR_OK) {
             return false;
         }
 
         // Check if the image is a valid image type
-        $finfo = new finfo(FILEINFO_MIME_TYPE);
         $validExts = array(
+            'jpg',
+            'png',
+            'gif'
+        );
+
+        $validTypes = array(
             'jpg' => 'image/jpeg',
             'png' => 'image/png',
             'gif' => 'image/gif',
         );
-        $ext = array_search($finfo->file($image['tmp_name']), $validExts, true);
-        if (false === $ext) {
+        $validExt = array_search(pathinfo($image->getClientFilename(), PATHINFO_EXTENSION), $validExts, true);
+
+        // $data['name'] = $validExt;
+
+        // return $data;
+
+        if (false === $validExt) {
             return false;
+        } else {
+            $validExt = $validExts[$validExt];
         }
 
         // Check if the image is a valid size
-        if ($image['size'] > 1000000) {
+        if ($image->getSize() > 1000000) {
             return false;
         }
 
         // Generate a unique filename
-        $filename = sha1_file($image['tmp_name']);
-        $destination = sprintf('%s/%s.%s', $this->uploadPath, $filename, $ext);
+        $filename = uuid();
+        $destination = sprintf('%s/%s.%s', $this->uploadPath, $filename, $validExt);
 
         // Move the file to the destination
-        if (!move_uploaded_file($image['tmp_name'], $destination)) {
-            return false;
-        }
+        $image->moveTo($destination);
 
         // Create a new image in the database
-        $image = $this->createImage($destination, '', $ext, $image['size'], date('Y-m-d H:i:s'), $userId, $albumName);
+        $dbImage = $this->createImage($filename, $caption, $validTypes[$validExt], $image->getSize(), date('Y-m-d H:i:s'), $userId);
 
-        if ($image != false) {
+        if ($dbImage != false) {
             // Image upload successful
-            return $image;
+            return $dbImage;
         } else {
             // Image upload failed
             return false;

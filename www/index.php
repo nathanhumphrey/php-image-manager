@@ -10,10 +10,14 @@
 <body>
     <main>
         <h1>PHP Image API</h1>
-        <form method="post" name="image-upload-form" action="/api/images/">
+        <form method="post" name="image-upload-form" action="/api/images">
             <label for="image-upload">Upload an image</label>
             <input type="file" name="image-upload" id="image-upload" />
+            <div>
+                <input type="text" name="caption" id="caption" placeholder="Image caption" />
+            </div>
             <input type="submit" value="Upload" />
+            <input type="hidden" name="userId" value="83680807-1af5-4a42-9c49-d306193084ec" />
         </form>
     </main>
     <script>

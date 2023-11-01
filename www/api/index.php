@@ -133,12 +133,26 @@ $app->get('/api/images/{id}', function (Request $request, Response $response, $a
     return json_response($response, $data);
 });
 
-$app->post('/api/images', function (Request $request, Response $response, $args) {
-    $data['message'] = 'api images post';
+$app->post('/api/images/', function (Request $request, Response $response, $args) {
+    $uploadedFiles = $request->getUploadedFiles();
+    $uploadedFile = $uploadedFiles['image-upload'];
+    $payload = $request->getParsedBody();
 
+    if ($uploadedFile != null && $uploadedFile->getError() === UPLOAD_ERR_OK) {
+        $image = $this->get('imageController')->uploadImage($uploadedFile, $payload['userId'], $payload['caption']);
 
-
-    return json_response($response, $data);
+        if ($image != false) {
+            $data['message'] = 'Image uploaded';
+            $data['image'] = $image;
+            return json_response($response, $data);
+        } else {
+            $data['message'] = 'Failed to upload image';
+            return json_response($response, $data, 500);
+        }
+    } else {
+        $data['message'] = 'No image uploaded';
+        return json_response($response, $data, 400);
+    }
 });
 
 $app->put('/api/images/{id}', function (Request $request, Response $response, $args) {
