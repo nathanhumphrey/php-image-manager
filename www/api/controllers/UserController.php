@@ -1,91 +1,104 @@
 <?php
 
+use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Http\Server\RequestHandlerInterface as RequestHandler;
+use Slim\Psr7\Response;
+use \Firebase\JWT\JWT;
+
 require_once __DIR__ . '/../utils/utils.php';
 require_once __DIR__ . '/../models/User.php';
+require_once __DIR__ . '/../controllers/UserController.php';
 
 class UserController {
 
-	private $db;
+	private $userRepository;
 	private static $instance = null;
 
-	private function __construct($database) {
-		$this->db = $database;
+	private function __construct($userRepo) {
+		$this->userRepository = $userRepo;
 	}
 
-	public static function getInstance($database) {
+	public static function getInstance($userRepo) {
 		if (is_null(self::$instance)) {
-			self::$instance = new self($database);
+			self::$instance = new self($userRepo);
 		}
 
 		return self::$instance;
 	}
 
-	/*
-	 * Returns a User object or false if creation fails
+	/**
+	 * Returns a JWT token if the user is authenticated
 	 */
-	public function createUser($email, $password, $username) {
-	    // Hash the password before storing it in the database
-	    $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+	public function authenticateUser(Request $request, Response $response, $args) {
+		$data = array();
+		$payload = $request->getParsedBody();
 
-	    // Sanitize user input to prevent SQL injection
-	    $email = htmlspecialchars($email);
-	    $username = htmlspecialchars($username);
+		if (!is_array($payload)) {
+			$data['message'] = "Some required fields are missing";
+			return json_response($response, $data, 412);
+		}
 
-	    // Check if the email is already registered
-	    $checkEmailQuery = "SELECT COUNT(*) FROM users WHERE email = :email";
-	    $stmt = $this->db->prepare($checkEmailQuery);
-	    $stmt->bindParam(':email', $email);
-	    $stmt->execute();
-	    $emailExists = $stmt->fetchColumn();
+		$email = isset($payload['email']) ? htmlspecialchars($payload['email']) : null;
+		$password = isset($payload['password']) ? $payload['password'] : null;
 
-	    if ($emailExists) {
-	        // Email is already registered
-	        return false;
-	    } else {
-	    	// Create a new UUID id for the user
-	    	$id = uuid();
-	        // Insert new user into the database
-	        $insertUserQuery = "INSERT INTO users (user_id, email, password, username) VALUES (:id, :email, :password, :username)";
-	        $stmt = $this->db->prepare($insertUserQuery);
-	        $stmt->bindParam(':id', $id);
-	        $stmt->bindParam(':email', $email);
-	        $stmt->bindParam(':password', $hashedPassword);
-	        $stmt->bindParam(':username', $username);
+		// Sanitize user input to prevent SQL injection
+		// You can also use filter_var() for more robust email validation
+		$email = htmlspecialchars($email);
+		$password = htmlspecialchars($password);
 
-	        if ($stmt->execute()) {
-	            // User registration successful
-	            return new User($id, $email, $username);
-	        } else {
-	            // User registration failed
-	            return false;
-	        }
-	    }
+		$user = $this->userRepository->getUserByCredentials($email, $password);
+
+		if ($user != false) {
+			// https://tools.ietf.org/html/rfc6750
+			$data = array(
+				'iat' => time(),
+				'nbf' => time(),
+				'name' => $user->username,
+				'uid' => $user->userId,
+			);
+
+			$jwt = JWT::encode($data, JWT_SECRET);
+
+			if ($jwt != false) {
+				$data['message'] = 'Login successful';
+				$data['token'] = $jwt;
+
+				return json_response($response, $data);
+			} else {
+				$data['message'] = 'Failed login attempt';
+				return json_response($response, $data, 400);
+			}
+		} else {
+			// User not found
+			$data['message'] = 'Invalid username or password';
+			return json_response($response, $data, 400);
+		}
 	}
 
-	/*
-	 * Returns a User object or false if lookup fails
+	/**
+	 * Register a new user in the system
 	 */
-	public function getUserByCredentials($email, $password) {
-		// Retrieve user data from the database based on the provided email
-	    $sql = "SELECT user_id, username, email, password FROM users WHERE email = :email";
-	    $stmt = $this->db->prepare($sql);
-	    $stmt->bindParam(':email', $email);
-	    $stmt->execute();
-	    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+	public function registerUser(Request $request, Response $response, $args) {
+		$data = array();
+		$payload = $request->getParsedBody();
 
-	    if ($user) {
-	        // User found, verify password
-	        $storedPasswordHash = $user['password'];
-	        // Verify the provided password against the stored password hash
-	        if (password_verify($password, $storedPasswordHash)) {
-	            // Password is correct, user is valid
-	            return new User($user['user_id'], $user['email'], $user['username']);
-	        }
-	        else {
-	        	return false;
-	        }
-	     }
+		if (!is_array($payload)) {
+			$data['message'] = "Some required fields are missing";
+			return json_response($response, $data, 412);
+		}
 
-	     return false;
+		$email = isset($payload['email']) ? htmlspecialchars($payload['email']) : null;
+		$password = isset($payload['password']) ? $payload['password'] : null;
+		$username = isset($payload['username']) ? $payload['username'] : null;
+
+		$user = $this->userRepository->createUser($email, $password, $username);
+
+		if ($user != false) {
+			$data['message'] = 'User registered';
+			return json_response($response, $data);
+		} else {
+			$data['message'] = 'Failed to create user';
+			return json_response($response, $data, 500);
+		}
 	}
 }

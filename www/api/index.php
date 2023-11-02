@@ -6,35 +6,37 @@ use Psr\Http\Server\RequestHandlerInterface as RequestHandler;
 use Slim\Factory\AppFactory;
 use Slim\Psr7\Response;
 
-require_once __DIR__ . '/config/db-access.php';
 require_once __DIR__ . '/vendor/autoload.php';
+
+require_once __DIR__ . '/config/app-config.php';
+require_once __DIR__ . '/data-access/db-access.php';
 require_once __DIR__ . '/utils/utils.php';
 
-require_once __DIR__ . '/controllers/LoginController.php';
+require_once __DIR__ . '/repositories/UserRepository.php';
+require_once __DIR__ . '/repositories/ImageRepository.php';
+
 require_once __DIR__ . '/controllers/UserController.php';
 require_once __DIR__ . '/controllers/ImageController.php';
 
-define('JWT_SECRET', 'somesupersecretvalue');
-define('UPLOAD_DIR', $_SERVER['DOCUMENT_ROOT'] . '/images/');
+// NOTE: the following setup is not super efficient, but gets the job done for now.
 
 // Prepare DI container
 $containerBuilder = new ContainerBuilder();
 $container = $containerBuilder->build();
 
-// Init controllers
-$userController = UserController::getInstance($DB);
-$loginController = LoginController::getInstance($userController);
-$imageController = ImageController::getInstance($DB, UPLOAD_DIR);
+// Init repositories
+$userRepo = UserRepository::getInstance($DB);
+$imageRepo = ImageRepository::getInstance($DB, UPLOAD_DIR);
 
 // Inject controllers
-$container->set('userController', $userController);
-$container->set('loginController', $loginController);
-$container->set('imageController', $imageController);
+$container->set('userController', UserController::getInstance($userRepo));
+$container->set('imageController', ImageController::getInstance($imageRepo, UPLOAD_DIR));
 
 // Build app
 AppFactory::setContainer($container);
 $app = AppFactory::create();
 
+// Add middleware
 $app->addBodyParsingMiddleware();
 
 $app->add(new \Tuupola\Middleware\JwtAuthentication([
@@ -60,61 +62,18 @@ $app->add(new \Tuupola\Middleware\CorsMiddleware([
     'cache' => 0,
 ]));
 
-$app->get('api/test', function (Request $request, Response $response, $args) {
-    $data['message'] = 'Test API Route';
-    return json_response($response, $data);
-});
+// Define routes
 
 // ------------------------------------------------------------------------------------------------
 // User routes
 // ------------------------------------------------------------------------------------------------
 
 $app->post('/api/login', function (Request $request, Response $response, $args) {
-    $data = array();
-    $payload = $request->getParsedBody();
-
-    if (!is_array($payload)) {
-        $data['message'] = "Some required fields are missing!";
-        return json_response($response, $data, 412);
-    }
-
-    $email = isset($payload['email']) ? htmlspecialchars($payload['email']) : null;
-    $password = isset($payload['password']) ? $payload['password'] : null;
-
-    $jwt = $this->get('loginController')->authenticateUser($email, $password);
-
-    if ($jwt != false) {
-        $data['token'] = $jwt;
-
-        return json_response($response, $data);
-    } else {
-        $data['message'] = 'Failed login attempt';
-        return json_response($response, $data, 400);
-    }
+    return $this->get('userController')->authenticateUser($request, $response, $args);
 });
 
 $app->post('/api/register', function (Request $request, Response $response, $args) {
-    $data = array();
-    $payload = $request->getParsedBody();
-
-    if (!is_array($payload)) {
-        $data['message'] = "Some required fields are missing!";
-        return json_response($response, $data, 412);
-    }
-
-    $email = isset($payload['email']) ? htmlspecialchars($payload['email']) : null;
-    $password = isset($payload['password']) ? $payload['password'] : null;
-    $username = isset($payload['username']) ? $payload['username'] : null;
-
-    $user = $this->get('userController')->createUser($email, $password, $username);
-
-    if ($user != false) {
-        $data['message'] = 'User registered';
-        return json_response($response, $data);
-    } else {
-        $data['message'] = 'Failed to create user';
-        return json_response($response, $data, 500);
-    }
+    return $this->get('userController')->registerUser($request, $response, $args);
 });
 
 // ------------------------------------------------------------------------------------------------
@@ -133,26 +92,8 @@ $app->get('/api/images/{id}', function (Request $request, Response $response, $a
     return json_response($response, $data);
 });
 
-$app->post('/api/images/', function (Request $request, Response $response, $args) {
-    $uploadedFiles = $request->getUploadedFiles();
-    $uploadedFile = $uploadedFiles['image-upload'];
-    $payload = $request->getParsedBody();
-
-    if ($uploadedFile != null && $uploadedFile->getError() === UPLOAD_ERR_OK) {
-        $image = $this->get('imageController')->uploadImage($uploadedFile, $payload['userId'], $payload['caption']);
-
-        if ($image != false) {
-            $data['message'] = 'Image uploaded';
-            $data['image'] = $image;
-            return json_response($response, $data);
-        } else {
-            $data['message'] = 'Failed to upload image';
-            return json_response($response, $data, 500);
-        }
-    } else {
-        $data['message'] = 'No image uploaded';
-        return json_response($response, $data, 400);
-    }
+$app->post('/api/images', function (Request $request, Response $response, $args) {
+    return $this->get('imageController')->uploadImage($request, $response, $args);
 });
 
 $app->put('/api/images/{id}', function (Request $request, Response $response, $args) {
@@ -177,6 +118,8 @@ $app->get('/api/test', function (Request $request, Response $response, $args) {
     $data['message'] = 'API TEST';
     return json_response($response, $data);
 });
+
+// Error handling
 
 $app->addErrorMiddleware(true, true, true);
 

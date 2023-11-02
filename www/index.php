@@ -25,7 +25,7 @@
         form.addEventListener('submit', e => {
             e.preventDefault();
             var formData = new FormData(form);
-            fetch('/api/images/', {
+            fetch('/api/images', {
                     method: 'POST',
                     body: formData
                 })
