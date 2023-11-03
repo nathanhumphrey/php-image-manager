@@ -39,24 +39,32 @@ The project is laid as follows:
 |- www/
 |  |- api/
 |  |  |- config/
-|  |  |  |- db-access.php
+|  |  |  |- app-config.php
 |  |  |  
 |  |  |- controllers/
-|  |  |  |- LoginController.php
+|  |  |  |- ImageController.php
 |  |  |  |- UserController.php
 |  |  |  
+|  |  |- data-access/
+|  |  |  |- db-access.php
+|  |  |  
 |  |  |- models/
+|  |  |  |- Image.php
 |  |  |  |- User.php
 |  |  |
+|  |  |- repositories/
+|  |  |  |- ImageRepository.php
+|  |  |  |- UserRepository.php
+|  |  |  
 |  |  |- utils/
 |  |  |  |- utils.php
 |  |  |
 |  |  |- vendor/
-|  |  |- index.php
+|  |  |- index.php # api index
 |  |
 |  |- images/
 |  |- js/
-|  |- index.php
+|  |- index.php # public html index
 |
 |- docker-compose.yml
 |- img_db.sql
