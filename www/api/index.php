@@ -107,7 +107,8 @@ $app->delete('/api/images/{id}', function (Request $request, Response $response,
     $data['message'] = 'api images delete';
     $id = $args['id'];
 
-    return json_response($response, $data);
+    return $this->get('imageController')->deleteImage($request, $response, $id);
+    // return json_response($response, $data);
 });
 
 // ------------------------------------------------------------------------------------------------

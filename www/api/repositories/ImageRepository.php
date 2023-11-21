@@ -28,9 +28,10 @@ class ImageRepository {
      * Returns an Image object or false if creation fails.
      * This method can only be called from within the class on successful upload.
      */
-    public function createImage($filename, $imageCaption, $imageType, $imageSize, $imageUploadDate, $userId = null) {
+    public function createImage($id, $extension, $imageCaption, $imageType, $imageSize, $imageUploadDate, $userId = null) {
         // Sanitize user input to prevent SQL injection
-        $filename = htmlspecialchars($filename);
+        $id = htmlspecialchars($id);
+        $extension = htmlspecialchars($extension);
         $imageCaption = htmlspecialchars($imageCaption);
         $imageType = htmlspecialchars($imageType);
         $imageSize = htmlspecialchars($imageSize);
@@ -38,9 +39,10 @@ class ImageRepository {
         $userId = htmlspecialchars($userId);
 
         // Insert new image into the database
-        $insertImageQuery = "INSERT INTO images (filename, image_caption, image_type, image_size, image_upload_date, user_id) VALUES (:filename, :imageCaption, :imageType, :imageSize, :imageUploadDate, :userId)";
+        $insertImageQuery = "INSERT INTO images (id, extension, image_caption, image_type, image_size, image_upload_date, user_id) VALUES (:id, :extension, :imageCaption, :imageType, :imageSize, :imageUploadDate, :userId)";
         $stmt = $this->db->prepare($insertImageQuery);
-        $stmt->bindParam(':filename', $filename);
+        $stmt->bindParam(':id', $id);
+        $stmt->bindParam(':extension', $extension);
         $stmt->bindParam(':imageCaption', $imageCaption);
         $stmt->bindParam(':imageType', $imageType);
         $stmt->bindParam(':imageSize', $imageSize);
@@ -49,7 +51,7 @@ class ImageRepository {
 
         if ($stmt->execute()) {
             // User registration successful
-            return new Image($filename, $imageCaption, $imageType, $imageSize, $imageUploadDate, $userId);
+            return new Image($id, $extension, $imageCaption, $imageType, $imageSize, $imageUploadDate, $userId);
         } else {
             // User registration failed
             return false;
@@ -59,20 +61,20 @@ class ImageRepository {
     /*
      * Returns an Image object or false if the image is not found
      */
-    public function getImageByFilename($filename) {
+    public function getImageById($id) {
         // Sanitize user input to prevent SQL injection
-        $filename = htmlspecialchars($filename);
+        $id = htmlspecialchars($id);
 
         // Get image from the database
-        $getImageQuery = "SELECT * FROM images WHERE filename = :filename";
+        $getImageQuery = "SELECT * FROM images WHERE id = :id";
         $stmt = $this->db->prepare($getImageQuery);
-        $stmt->bindParam(':filename', $filename);
+        $stmt->bindParam(':id', $id);
         $stmt->execute();
         $image = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($image) {
             // Image found
-            return new Image($image['filename'], $image['image_caption'], $image['image_type'], $image['image_size'], $image['image_upload_date'], $image['user_id']);
+            return new Image($image['id'], $image['extension'], $image['image_caption'], $image['image_type'], $image['image_size'], $image['image_upload_date'], $image['user_id']);
         } else {
             // Image not found
             return false;
@@ -102,6 +104,34 @@ class ImageRepository {
             return $imageObjects;
         } else {
             // Images not found
+            return false;
+        }
+    }
+
+    /*
+     * Returns an array of Image objects or false if no images are found
+     */
+    // TODO: add params for pagination of large albums
+    public function getImagesForAlbum($albumName) {
+        // Sanitize user input to prevent SQL injection
+        $albumName = htmlspecialchars($albumName);
+
+        // Get images from the database
+        $getImagesQuery = "SELECT * FROM images AS i JOIN album_images AS a ON i.id = a.image_id WHERE a.albumName = :albumName";
+        $stmt = $this->db->prepare($getImagesQuery);
+        $stmt->bindParam(':albumName', $albumName);
+        $stmt->execute();
+        $images = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        if ($images) {
+            // Images found
+            $imageObjects = array();
+            foreach ($images as $image) {
+                $imageIds[] = new Image($image['id'], $image['extension'], $image['image_caption'], $image['image_type'], $image['image_size'], $image['image_upload_date'], $image['user_id']);
+            }
+            return $imageObjects;
+        } else {
+            // No images not found
             return false;
         }
     }
@@ -141,47 +171,12 @@ class ImageRepository {
      * Returns true if the image is deleted or false if the image is not found.
      * Deletes the file from the server and the database.
      */
-    public function deleteImage($filename) {
-        // Sanitize user input to prevent SQL injection
-        $filename = htmlspecialchars($filename);
-
-        // Get image from the database
-        $getImageQuery = "SELECT * FROM images WHERE filename = :filename";
-        $stmt = $this->db->prepare($getImageQuery);
-        $stmt->bindParam(':filename', $filename);
-        $stmt->execute();
-        $image = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if ($image) {
-            // Image found, delete the file from the server
-            $imagePath = $this->uploadPath . $image['filename'];
-            if (file_exists($imagePath)) {
-                if (unlink($imagePath)) {
-                    // Delete image from the database
-                    $deleteImageQuery = "DELETE FROM images WHERE filename = :filename";
-                    $stmt = $this->db->prepare($deleteImageQuery);
-                    $stmt->bindParam(':filename', $filename);
-                    $stmt->execute();
-
-                    // Image delete successful
-                    return true;
-                } else {
-                    return false;
-                }
-            } else {
-                // File doesn't exist, delete image from the database
-                $deleteImageQuery = "DELETE FROM images WHERE filename = :filename";
-                $stmt = $this->db->prepare($deleteImageQuery);
-                $stmt->bindParam(':filename', $filename);
-                $stmt->execute();
-
-                // Image delete successful
-                return true;
-            }
-        } else {
-            // Image not found
-            return false;
-        }
+    public function deleteImage($id) {
+        // Delete image from the database
+        $deleteImageQuery = "DELETE FROM images WHERE id = :id";
+        $stmt = $this->db->prepare($deleteImageQuery);
+        $stmt->bindParam(':id', $id);
+        return $stmt->execute();
     }
 
     /*
@@ -204,7 +199,7 @@ class ImageRepository {
             return true;
         } else {
             // Get image filenames from the database
-            $getImageFilenamesQuery = "SELECT filename FROM album_images WHERE album_name = :albumName";
+            $getImageFilenamesQuery = "SELECT id FROM album_images WHERE album_name = :albumName";
             $stmt = $this->db->prepare($getImageFilenamesQuery);
             $stmt->bindParam(':albumName', $albumName);
             $stmt->execute();
