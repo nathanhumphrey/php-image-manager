@@ -9,7 +9,7 @@ class Image {
 	public $imageUploadDate;
 	public $userId;
 
-	public function __construct(string $id, string $extension, string $imageCaption = '', string $imageType = '', string $imageSize = '', string $imageUploadDate = '', string $userId = '') {
+	public function __construct(string $id, string $extension, string $imageCaption = '', string $imageType = '', string $imageSize = '', string $imageUploadDate = '', string $userId = null) {
 		$this->id = $id;
 		$this->extension = $extension;
 		$this->imageCaption = $imageCaption;

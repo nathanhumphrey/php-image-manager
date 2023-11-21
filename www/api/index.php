@@ -44,7 +44,7 @@ $app->add(new \Tuupola\Middleware\JwtAuthentication([
     'attribute' => 'jwt',
     'algorithm' => ['HS256'],
     'path' => '/api',
-    'ignore' => ['/api/register', '/api/login', '/api/images'],
+    'ignore' => ['/api/register', '/api/login', '/api/test'],
     'secure' => false, // to allow unsecure (i.e. http) connection to local server for testing
     'error' => function ($response, $arguments) {
         $data['message'] = 'Unauthorized (JWT)';
@@ -81,15 +81,12 @@ $app->post('/api/register', function (Request $request, Response $response, $arg
 // ------------------------------------------------------------------------------------------------
 
 $app->get('/api/images', function (Request $request, Response $response, $args) {
-    $data['message'] = 'api images get';
-    return json_response($response, $data);
+    return $this->get('imageController')->getAllImages($request, $response);
 });
 
-$app->get('/api/images/{id}', function (Request $request, Response $response, $args) {
-    $data['message'] = 'api images get id';
-    $id = $args['id'];
-
-    return json_response($response, $data);
+$app->get('/api/images/{ids}', function (Request $request, Response $response, $args) {
+    $ids = $args['ids'];
+    return $this->get('imageController')->getImageById($request, $response, $ids);
 });
 
 $app->post('/api/images', function (Request $request, Response $response, $args) {
@@ -97,26 +94,44 @@ $app->post('/api/images', function (Request $request, Response $response, $args)
 });
 
 $app->put('/api/images/{id}', function (Request $request, Response $response, $args) {
-    $data['message'] = 'api images put id';
     $id = $args['id'];
-
-    return json_response($response, $data);
+    return $this->get('imageController')->updateImage($request, $response, $id);
 });
 
-$app->delete('/api/images/{id}', function (Request $request, Response $response, $args) {
-    $data['message'] = 'api images delete';
-    $id = $args['id'];
-
-    return $this->get('imageController')->deleteImage($request, $response, $id);
-    // return json_response($response, $data);
+$app->delete('/api/images/{ids}', function (Request $request, Response $response, $args) {
+    $ids = $args['ids'];
+    return $this->get('imageController')->deleteImage($request, $response, $ids);
 });
 
+// ------------------------------------------------------------------------------------------------
+// Album routes
+// ------------------------------------------------------------------------------------------------
+
+$app->get('/api/albums', function (Request $request, Response $response, $args) {
+    return $this->get('imageController')->getAllAlbums($request, $response);
+});
+
+$app->get('/api/albums/{albumName}', function (Request $request, Response $response, $args) {
+    $albumName = $args['albumName'];
+    return $this->get('imageController')->getImagesForAlbum($request, $response, $albumName);
+});
+
+$app->post('/api/albums', function (Request $request, Response $response, $args) {
+    return $this->get('imageController')->createAlbum($request, $response, $args);
+});
+
+$app->delete('/api/albums/{albumName}[/{fromStorage}]', function (Request $request, Response $response, $args) {
+    $albumName = $args['albumName'];
+    $fromStorage = isset($args['fromStorage']) ? true : false;
+    return $this->get('imageController')->deleteAlbumImages($request, $response, $albumName, $fromStorage);
+});
 // ------------------------------------------------------------------------------------------------
 // Test route
 // ------------------------------------------------------------------------------------------------
 
-$app->get('/api/test', function (Request $request, Response $response, $args) {
+$app->get('/api/test[/{a}[/{b}]]', function (Request $request, Response $response, $args) {
     $data['message'] = 'API TEST';
+    $data['args'] = $args;
     return json_response($response, $data);
 });
 
