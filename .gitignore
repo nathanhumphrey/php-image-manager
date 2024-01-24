@@ -8,7 +8,6 @@ db-access.php
 ### Local Testing ###
 curl/
 curl-commands.sh
-php-composer-require.txt
 
 ### Other ###
 images/
