@@ -17,6 +17,12 @@ The web server can be reached at `localhost:80`, phpmyadmin can be accessed at `
 
 See the [docker-compose.yml](./docker-compose.yml) file for detais and config options.
 
+Get everything up and running with the following:
+
+```sh
+docker compose up
+```
+
 ## Composer
 
 PHP is managed using composer. To manage packages, use the following command:
