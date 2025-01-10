@@ -15,7 +15,7 @@ The dev environment is managed via docker with the following containers:
 
 The web server can be reached at `localhost:80`, phpmyadmin can be accessed at `localhost:8080`, and the database at `localhost:3306`.
 
-See the [docker-compose.yml](./docker-compose.yml) file for detais and config options.
+See the [docker-compose.yml](./docker-compose.yml) file for detais and config options.`
 
 Get everything up and running with the following:
 
@@ -23,9 +23,23 @@ Get everything up and running with the following:
 docker compose up
 ```
 
+## Database Access
+
+Update the credentials in `www/api/data-access/db-access.php` for your database.
+
+NOTE: the default values in `db-access.sample.php` will work with the initial install for this project.
+
 ## Composer
 
-PHP is managed using composer. To manage packages, use the following command:
+PHP is managed using composer.
+
+To install initial packages, use the following command:
+
+```sh
+docker run --rm --interactive --tty --volume `./www/DESIRED_LOCATION`:/app composer install
+```
+
+To add/manage packages, use the following command:
 
 ```sh
 docker run --rm --interactive --tty --volume `./www/DESIRED_LOCATION`:/app composer require PACKAGE
@@ -37,7 +51,7 @@ Modify the command above to install, update, remove, etc. as necessary.
 
 The project is laid as follows:
 
-``` sh
+```sh
 /
 |- nginx-conf/
 |  |- nginx.conf
@@ -46,14 +60,14 @@ The project is laid as follows:
 |  |- api/
 |  |  |- config/
 |  |  |  |- app-config.php
-|  |  |  
+|  |  |
 |  |  |- controllers/
 |  |  |  |- ImageController.php
 |  |  |  |- UserController.php
-|  |  |  
+|  |  |
 |  |  |- data-access/
 |  |  |  |- db-access.php
-|  |  |  
+|  |  |
 |  |  |- models/
 |  |  |  |- Image.php
 |  |  |  |- User.php
@@ -61,7 +75,7 @@ The project is laid as follows:
 |  |  |- repositories/
 |  |  |  |- ImageRepository.php
 |  |  |  |- UserRepository.php
-|  |  |  
+|  |  |
 |  |  |- utils/
 |  |  |  |- utils.php
 |  |  |
@@ -78,5 +92,4 @@ The project is laid as follows:
 |- test-commands.sample
 ```
 
-### 
-
+###

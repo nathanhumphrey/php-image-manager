@@ -1,1 +1,5 @@
+# Windows
 docker run --rm --interactive --tty --volume `.\www\api`:/app composer require <package>
+
+# Mac/Linux
+docker run --rm --interactive --tty --volume ./www/api:/app composer require <package>
